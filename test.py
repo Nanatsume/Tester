@@ -22,3 +22,7 @@ def login(username, password):
         return False
     finally:
         connection.close()
+
+username = 'tester'
+password = '123456'
+login(username, password)
