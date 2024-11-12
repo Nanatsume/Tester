@@ -1,57 +1,41 @@
-import requests
-from requests.exceptions import HTTPError, Timeout
-import logging
+import sqlite3
 
-logging.basicConfig(level=logging.INFO)
-
-def login_to_website(url, username, password):
+def insecure_login(username, password):
     """
-    Logs into a website and returns the response object.
+    Demonstrates an insecure login function vulnerable to SQL injection.
 
     Args:
-        url (str): The login URL.
-        username (str): The username for login.
-        password (str): The password for login.
+        username (str): The username to log in.
+        password (str): The password to log in.
 
     Returns:
-        response (requests.Response): The response object from the login attempt.
+        bool: True if login is successful, False otherwise.
     """
+    # Connect to the database
+    connection = sqlite3.connect("example.db")
+    cursor = connection.cursor()
+    
     try:
-        login_data = {
-            'username': username,
-            'password': password
-        }
-
-        # Sending a POST request to the login URL with the login data
-        response = requests.post(url, data=login_data, timeout=10)
+        # Insecure SQL query vulnerable to SQL injection
+        query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}';"
+        cursor.execute(query)
         
-        # Raise an error for unsuccessful status codes
-        response.raise_for_status()
-
-        if "login successful" in response.text.lower():
-            logging.info("Login successful!")
+        # If a record is found, login is successful
+        user = cursor.fetchone()
+        if user:
+            print("Login successful!")
+            return True
         else:
-            logging.warning("Login failed. Check credentials or login URL.")
-            
-        return response
+            print("Login failed.")
+            return False
 
-    except HTTPError as http_err:
-        logging.error(f"HTTP error occurred: {http_err}")
-    except Timeout as timeout_err:
-        logging.error(f"Request timed out: {timeout_err}")
-    except Exception as err:
-        logging.error(f"An error occurred: {err}")
-    return None
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        return False
+    finally:
+        connection.close()
 
-
-# Example usage (make sure to replace with real values)
-url = "https://example.com/login"
-username = "your_username"
-password = "your_password"
-
-login_response = login_to_website(url, username, password)
-
-if login_response:
-    logging.info("Process completed.")
-else:
-    logging.error("Login attempt failed or error occurred.")
+# Example usage (replace with actual test values)
+username = "admin' --"
+password = "anything"  # This will bypass the password check with SQL injection
+insecure_login(username, password)
